@@ -5,7 +5,7 @@ type ClockReference struct {
 	Extension int64
 }
 
-func NewClockReference(base, extension int64) *ClockReference {
+func newClockReference(base, extension int64) *ClockReference {
 	return &ClockReference{
 		Base:      base,
 		Extension: extension,

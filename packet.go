@@ -4,13 +4,13 @@ import (
 	"fmt"
 )
 
-type TSPacket struct {
-	Header          TSPacketHeader
-	AdaptationField *TSPacketAdaptationField
+type Packet struct {
+	Header          PacketHeader
+	AdaptationField *PacketAdaptationField
 	Payload         []byte
 }
 
-type TSPacketHeader struct {
+type PacketHeader struct {
 	TransportErrorIndicator    bool
 	PayloadUnitStartIndicator  bool
 	TransportPriority          bool
@@ -22,7 +22,7 @@ type TSPacketHeader struct {
 	HasPayload                 bool
 }
 
-type TSPacketAdaptationField struct {
+type PacketAdaptationField struct {
 	Length                            int
 	DiscontinuityIndicator            bool
 	RandomAccessIndicator             bool
@@ -32,7 +32,7 @@ type TSPacketAdaptationField struct {
 	SpliceCountdown                   int
 	TransportPrivateDataLength        int
 	TransportPrivateData              []byte
-	AdaptationExtensionField          *TSPacketAdaptationExtensionField
+	AdaptationExtensionField          *PacketAdaptationExtensionField
 	HasPCR                            bool
 	HasOPCR                           bool
 	HasSplicingPoint                  bool
@@ -40,7 +40,7 @@ type TSPacketAdaptationField struct {
 	HasAdaptationExtensionField       bool
 }
 
-type TSPacketAdaptationExtensionField struct {
+type PacketAdaptationExtensionField struct {
 	Length                 int
 	HasLegalTimeWindow     bool
 	HasPiecewiseRate       bool
@@ -52,7 +52,7 @@ type TSPacketAdaptationExtensionField struct {
 	DTSNextAccessUnit      *ClockReference
 }
 
-func parseTSPacket(i *BytesIterator) (p *TSPacket, err error) {
+func parsePacket(i *BytesIterator) (p *Packet, err error) {
 	var b byte
 
 	// try to get sync_byte
@@ -67,15 +67,15 @@ func parseTSPacket(i *BytesIterator) (p *TSPacket, err error) {
 		return
 	}
 
-	p = &TSPacket{}
+	p = &Packet{}
 
-	if p.Header, err = parseTSPacketHeader(i); err != nil {
+	if p.Header, err = parsePacketHeader(i); err != nil {
 		err = fmt.Errorf("tsdemuxer: parsing packet header failed: %w", err)
 		return
 	}
 
 	if p.Header.HasAdaptationField {
-		if p.AdaptationField, err = parseTSPacketAdaptationField(i); err != nil {
+		if p.AdaptationField, err = parsePacketAdaptationField(i); err != nil {
 			err = fmt.Errorf("tsdemuxer: parsing packet adaptation field failed: %w", err)
 			return
 		}
@@ -89,7 +89,7 @@ func parseTSPacket(i *BytesIterator) (p *TSPacket, err error) {
 	return
 }
 
-func payloadOffset(offsetStart int, h TSPacketHeader, a *TSPacketAdaptationField) (offset int) {
+func payloadOffset(offsetStart int, h PacketHeader, a *PacketAdaptationField) (offset int) {
 	offset = offsetStart + 3
 	if h.HasAdaptationField {
 		offset += 1 + a.Length
@@ -97,14 +97,14 @@ func payloadOffset(offsetStart int, h TSPacketHeader, a *TSPacketAdaptationField
 	return
 }
 
-func parseTSPacketHeader(i *BytesIterator) (h TSPacketHeader, err error) {
+func parsePacketHeader(i *BytesIterator) (h PacketHeader, err error) {
 	var bs []byte
 
 	if bs, err = i.NextBytesNoCopy(3); err != nil {
 		return
 	}
 
-	h = TSPacketHeader{
+	h = PacketHeader{
 		TransportErrorIndicator:   bs[0]&0x80 > 0,
 		PayloadUnitStartIndicator: bs[0]&0x40 > 0,
 		TransportPriority:         bs[0]&0x20 > 0,
@@ -127,8 +127,8 @@ func parseTSPacketHeader(i *BytesIterator) (h TSPacketHeader, err error) {
 	return
 }
 
-func parseTSPacketAdaptationField(i *BytesIterator) (af *TSPacketAdaptationField, err error) {
-	af = &TSPacketAdaptationField{}
+func parsePacketAdaptationField(i *BytesIterator) (af *PacketAdaptationField, err error) {
+	af = &PacketAdaptationField{}
 
 	var b byte
 
@@ -212,15 +212,15 @@ func parsePCR(i *BytesIterator) (cr *ClockReference, err error) {
 	}
 
 	pcr := uint64(bs[0])<<40 | uint64(bs[1])<<32 | uint64(bs[2])<<24 | uint64(bs[3])<<16 | uint64(bs[4])<<8 | uint64(bs[5])
-	cr = NewClockReference(int64(pcr>>15), int64(pcr&0x1ff))
+	cr = newClockReference(int64(pcr>>15), int64(pcr&0x1ff))
 	return
 }
 
-func parseAdaptationExtensionField(i *BytesIterator) (afe *TSPacketAdaptationExtensionField, err error) {
+func parseAdaptationExtensionField(i *BytesIterator) (afe *PacketAdaptationExtensionField, err error) {
 	var b byte
 	var bs []byte
 
-	afe = &TSPacketAdaptationExtensionField{}
+	afe = &PacketAdaptationExtensionField{}
 
 	// try to get adaptation_field_extension_length
 	if b, err = i.NextByte(); err != nil {
@@ -281,6 +281,6 @@ func parsePTSOrDTS(i *BytesIterator) (cr *ClockReference, err error) {
 		return
 	}
 
-	cr = NewClockReference(int64(uint64(bs[0])>>1&0x7<<30|uint64(bs[1])<<22|uint64(bs[2])>>1&0x7f<<15|uint64(bs[3])<<7|uint64(bs[4])>>1&0x7f), 0)
+	cr = newClockReference(int64(uint64(bs[0])>>1&0x7<<30|uint64(bs[1])<<22|uint64(bs[2])>>1&0x7f<<15|uint64(bs[3])<<7|uint64(bs[4])>>1&0x7f), 0)
 	return
 }
