@@ -41,7 +41,9 @@ func (t *Demuxer) Demux() (err error) {
 			return
 		}
 
-		// TODO:
+		// TODO: save packet
+
+		// TODO: parseData
 		fmt.Println(p)
 	}
 }
