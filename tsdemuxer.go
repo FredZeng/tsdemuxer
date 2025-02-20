@@ -9,7 +9,8 @@ import (
 const SyncByte = 0x47
 
 var (
-	ErrPacketTooSmall               = errors.New("tsdemuxer: packet too small")
+	ErrLackOfPacketHeader           = errors.New("tsdemuxer: lack of packet header")
+	ErrLackOfAdaptationField        = errors.New("tsdemuxer: lack of adaptation field")
 	ErrNoMorePackets                = errors.New("tsdemuxer: no more packets")
 	ErrPacketMustStartWithASyncByte = errors.New("tsdemuxer: packet must start with a sync byte")
 )
