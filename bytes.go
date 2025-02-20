@@ -23,7 +23,7 @@ func (i *BytesIterator) NextByte() (b byte, err error) {
 
 func (i *BytesIterator) NextBytes(n int) (bs []byte, err error) {
 	if len(i.bs) < i.offset+n {
-		err = fmt.Errorf("astikit: slice length is %d, offset %d is invalid", len(i.bs), i.offset+n)
+		err = fmt.Errorf("tsdemuxer: slice length is %d, offset %d is invalid", len(i.bs), i.offset+n)
 		return
 	}
 	bs = make([]byte, n)

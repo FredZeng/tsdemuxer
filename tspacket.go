@@ -55,6 +55,7 @@ type TSPacketAdaptationExtensionField struct {
 func parseTSPacket(i *BytesIterator) (p *TSPacket, err error) {
 	var b byte
 
+	// try to get sync_byte
 	if b, err = i.NextByte(); err != nil {
 		err = fmt.Errorf("tsdemuxer: getting next byte failed: %w", err)
 		return
@@ -97,30 +98,30 @@ func payloadOffset(offsetStart int, h TSPacketHeader, a *TSPacketAdaptationField
 }
 
 func parseTSPacketHeader(i *BytesIterator) (h TSPacketHeader, err error) {
-	var bytes []byte
+	var bs []byte
 
-	if bytes, err = i.NextBytesNoCopy(3); err != nil {
+	if bs, err = i.NextBytesNoCopy(3); err != nil {
 		return
 	}
 
 	h = TSPacketHeader{
-		TransportErrorIndicator:   bytes[0]&0x80 > 0,
-		PayloadUnitStartIndicator: bytes[0]&0x40 > 0,
-		TransportPriority:         bytes[0]&0x20 > 0,
-		PID:                       uint16(bytes[0]&0x1f)<<8 | uint16(bytes[1]),
+		TransportErrorIndicator:   bs[0]&0x80 > 0,
+		PayloadUnitStartIndicator: bs[0]&0x40 > 0,
+		TransportPriority:         bs[0]&0x20 > 0,
+		PID:                       uint16(bs[0]&0x1f)<<8 | uint16(bs[1]),
 		// 00 - Not scrambled
 		// 01 - User-defined
 		// 02 - User-defined
 		// 03 - User-defined
-		TransportScramblingControl: uint8(bytes[2]) >> 6 & 0x3,
+		TransportScramblingControl: uint8(bs[2]) >> 6 & 0x3,
 		// 00 - Reserved for future use by ISO/IEC
 		// 01 - No adaptation_field, payload only
 		// 10 - Adaptation_field only, no payload
 		// 11 - Adaptation_field followed by payload
-		AdaptationFieldControl: uint8(bytes[2]) >> 4 & 0x3,
-		ContinuityCounter:      uint8(bytes[2] & 0xf),
-		HasAdaptationField:     bytes[2]&0x20 > 0,
-		HasPayload:             bytes[2]&0x10 > 0,
+		AdaptationFieldControl: uint8(bs[2]) >> 4 & 0x3,
+		ContinuityCounter:      uint8(bs[2] & 0xf),
+		HasAdaptationField:     bs[2]&0x20 > 0,
+		HasPayload:             bs[2]&0x10 > 0,
 	}
 
 	return
@@ -131,6 +132,7 @@ func parseTSPacketAdaptationField(i *BytesIterator) (af *TSPacketAdaptationField
 
 	var b byte
 
+	// try to get adaptation_field_length
 	if b, err = i.NextByte(); err != nil {
 		return
 	}
@@ -194,7 +196,7 @@ func parseTSPacketAdaptationField(i *BytesIterator) (af *TSPacketAdaptationField
 
 	if af.HasAdaptationExtensionField {
 		if af.AdaptationExtensionField, err = parseAdaptationExtensionField(i); err != nil {
-			err = fmt.Errorf("tsdemuxer: parsing adaptation field extension: %w", err)
+			err = fmt.Errorf("tsdemuxer: parsing adaptation field extension failed: %w", err)
 			return
 		}
 	}
@@ -220,6 +222,7 @@ func parseAdaptationExtensionField(i *BytesIterator) (afe *TSPacketAdaptationExt
 
 	afe = &TSPacketAdaptationExtensionField{}
 
+	// try to get adaptation_field_extension_length
 	if b, err = i.NextByte(); err != nil {
 		return
 	}
