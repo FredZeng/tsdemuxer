@@ -10,6 +10,11 @@ import (
 const SyncByte = 0x47
 const TSPacketSize = 188
 
+const (
+	PAT_ID  uint16 = 0x0000
+	NULL_ID uint16 = 0x1FFF
+)
+
 var (
 	ErrNoMorePackets                = errors.New("tsdemuxer: no more packets")
 	ErrPacketMustStartWithASyncByte = errors.New("tsdemuxer: packet must start with a sync byte")
@@ -63,7 +68,11 @@ func (d *Demuxer) NextFrame() (f *Frame, err error) {
 			return
 		}
 
-		if p.Header.PayloadUnitStartIndicator {
+		if p.Header.PID == PAT_ID {
+			// TODO:
+		} else if p.Header.PID == NULL_ID {
+			continue
+		} else {
 			// TODO:
 		}
 	}
