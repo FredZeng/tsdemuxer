@@ -12,12 +12,11 @@ type packetBuffer struct {
 	packetReadBuffer []byte
 }
 
-func newPacketBuffer(r io.Reader, packetSize int) (pb *packetBuffer) {
-	pb = &packetBuffer{
+func newPacketBuffer(r io.Reader, packetSize int) *packetBuffer {
+	return &packetBuffer{
 		packetSize: packetSize,
 		r:          r,
 	}
-	return
 }
 
 func (pb *packetBuffer) next() (p *Packet, err error) {

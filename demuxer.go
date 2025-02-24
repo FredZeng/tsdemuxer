@@ -8,6 +8,7 @@ import (
 )
 
 const SyncByte = 0x47
+const TSPacketSize = 188
 
 var (
 	ErrNoMorePackets                = errors.New("tsdemuxer: no more packets")
@@ -20,30 +21,52 @@ type Demuxer struct {
 	packetBuffer *packetBuffer
 }
 
+type Frame struct {
+	streamType uint8
+	payload    []byte
+	pts        int64
+	dts        int64
+}
+
 func NewDemuxer(ctx context.Context, r io.Reader) *Demuxer {
 	return &Demuxer{
-		ctx:          ctx,
-		r:            r,
-		packetBuffer: newPacketBuffer(r, 188),
+		ctx: ctx,
+		r:   r,
 	}
 }
 
-func (t *Demuxer) Demux() (err error) {
+func (d *Demuxer) NextPacket() (p *Packet, err error) {
+	if err = d.ctx.Err(); err != nil {
+		return
+	}
+
+	if d.packetBuffer == nil {
+		d.packetBuffer = newPacketBuffer(d.r, TSPacketSize)
+	}
+
+	if p, err = d.packetBuffer.next(); err != nil {
+		if !errors.Is(err, ErrNoMorePackets) {
+			err = fmt.Errorf("tsdemuxer: getting next packet from buffer failed: %w", err)
+		}
+		return
+	}
+
+	p.PrettyPrint()
+
+	return
+}
+
+func (d *Demuxer) NextFrame() (f *Frame, err error) {
 	for {
 		var p *Packet
-
-		if p, err = t.packetBuffer.next(); err != nil {
-			if errors.Is(err, ErrNoMorePackets) {
-				err = nil
-				return
-			}
-			err = fmt.Errorf("tsdemuxer: getting next packet from buffer failed: %w", err)
+		if p, err = d.NextPacket(); err != nil {
 			return
 		}
 
-		// TODO: save packet
-
-		// TODO: parseData
-		fmt.Println(p)
+		if p.Header.PayloadUnitStartIndicator {
+			// TODO:
+		}
 	}
+
+	return
 }

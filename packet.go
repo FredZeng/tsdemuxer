@@ -284,3 +284,76 @@ func parsePTSOrDTS(i *BytesIterator) (cr *ClockReference, err error) {
 	cr = newClockReference(int64(uint64(bs[0])>>1&0x7<<30|uint64(bs[1])<<22|uint64(bs[2])>>1&0x7f<<15|uint64(bs[3])<<7|uint64(bs[4])>>1&0x7f), 0)
 	return
 }
+
+func (p *Packet) PrettyPrint() {
+	fmt.Println("--- Transport Packet ---")
+	fmt.Printf("transport_error_indicator: %t\n", p.Header.TransportErrorIndicator)
+	fmt.Printf("payload_unit_start_indicator: %t\n", p.Header.PayloadUnitStartIndicator)
+	fmt.Printf("transport_priority: %t\n", p.Header.TransportPriority)
+	fmt.Printf("PID: %d\n", p.Header.PID)
+	fmt.Printf("transport_scrambling_control: %d\n", p.Header.TransportScramblingControl)
+	fmt.Printf("adaptation_field_control: %d\n", p.Header.AdaptationFieldControl)
+	fmt.Printf("continuity_counter: %d\n", p.Header.ContinuityCounter)
+
+	if p.Header.HasAdaptationField {
+		fmt.Println("")
+		p.AdaptationField.PrettyPrint()
+	}
+	fmt.Printf("--- Transport Packet ---\n\n")
+}
+
+func (p *PacketAdaptationField) PrettyPrint() {
+	fmt.Println("=== Adaptation Field ===")
+	fmt.Printf("adaptation_field_length: %d\n", p.Length)
+	if p.Length > 0 {
+		fmt.Printf("discontinuity_indicator: %t\n", p.DiscontinuityIndicator)
+		fmt.Printf("random_access_indicator: %t\n", p.RandomAccessIndicator)
+		fmt.Printf("elementary_stream_priority_indicator: %t\n", p.ElementaryStreamPriorityIndicator)
+		fmt.Printf("PCR_flag: %t\n", p.HasPCR)
+		fmt.Printf("OPCR_flag: %t\n", p.HasOPCR)
+		fmt.Printf("splicing_point_flag: %t\n", p.HasSplicingPoint)
+		fmt.Printf("transport_private_data_flag: %t\n", p.HasTransportPrivateData)
+		fmt.Printf("adaptation_field_extension_flag: %t\n", p.HasAdaptationExtensionField)
+
+		if p.HasPCR {
+			fmt.Printf("program_clock_reference_base: %d\n", p.PCR.Base)
+			fmt.Printf("program_clock_reference_extension: %d\n", p.PCR.Extension)
+		}
+
+		if p.HasOPCR {
+			fmt.Printf("original_program_clock_reference_base: %d\n", p.OPCR.Base)
+			fmt.Printf("original_program_clock_reference_extension: %d\n", p.OPCR.Extension)
+		}
+
+		if p.HasSplicingPoint {
+			fmt.Printf("splice_countdown: %d\n", p.SpliceCountdown)
+		}
+
+		if p.HasTransportPrivateData {
+			fmt.Printf("transport_private_data_length: %d\n", p.TransportPrivateDataLength)
+			//fmt.Printf("transport_private_data: %v\n", p.TransportPrivateData)
+		}
+
+		if p.HasAdaptationExtensionField {
+			fmt.Printf("adaptation_extension_field_length: %d\n", p.AdaptationExtensionField.Length)
+			fmt.Printf("legal_time_window_flag: %t\n", p.AdaptationExtensionField.HasLegalTimeWindow)
+			fmt.Printf("piecewise_rate_flag: %t\n", p.AdaptationExtensionField.HasPiecewiseRate)
+			fmt.Printf("seamless_splice_flag: %t\n", p.AdaptationExtensionField.HasSeamlessSplice)
+
+			if p.AdaptationExtensionField.HasLegalTimeWindow {
+				fmt.Printf("legal_time_window_valid_flag: %t\n", p.AdaptationExtensionField.LegalTimeWindowIsValid)
+				fmt.Printf("legal_time_window_offset: %d\n", p.AdaptationExtensionField.LegalTimeWindowOffset)
+			}
+
+			if p.AdaptationExtensionField.HasPiecewiseRate {
+				fmt.Printf("piecewise_rate: %d\n", p.AdaptationExtensionField.PiecewiseRate)
+			}
+
+			if p.AdaptationExtensionField.HasSeamlessSplice {
+				fmt.Printf("splice_type: %d\n", p.AdaptationExtensionField.SpliceType)
+				fmt.Printf("DTS_next_Access_Unit: %d\n", p.AdaptationExtensionField.DTSNextAccessUnit.Base)
+			}
+		}
+	}
+	fmt.Println("=== Adaptation Field ===")
+}

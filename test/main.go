@@ -20,7 +20,11 @@ func main() {
 
 	demuxer := tsdemuxer.NewDemuxer(ctx, f)
 
-	if err := demuxer.Demux(); err != nil {
-		panic(err)
+	for {
+		_, err := demuxer.NextPacket()
+
+		if err != nil {
+			break
+		}
 	}
 }
